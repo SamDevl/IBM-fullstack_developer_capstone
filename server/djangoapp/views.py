@@ -13,11 +13,23 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from .populate import initiate
 from .models import CarMake, CarModel
-
+import requests
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+def get_request(endpoint):
+    """Helper function to make an HTTP GET request."""
+    try:
+        # Define your base API URL (replace this with your actual base URL)
+        backend_url = "https://rsamuel3-3030.theiadockernext-0-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai"  # Adjust the base URL for your API
+        url = backend_url + endpoint
+        response = requests.get(url)
+        response.raise_for_status()  # Raises an exception for HTTP errors (4xx or 5xx)
+        return response.json()  # Assuming the response is in JSON format
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from {url}: {e}")
+        return None  # Return None if the request fails
 
 # Create your views here.
 # Create a `method` to get the list of cars
@@ -91,12 +103,17 @@ def registration(request):
 
 #Update the `get_dealerships` render list of dealerships all by default, particular state if state is passed
 def get_dealerships(request, state="All"):
-    if(state == "All"):
+    if state == "All":
         endpoint = "/fetchDealers"
     else:
-        endpoint = "/fetchDealers/"+state
+        endpoint = "/fetchDealers/" + state
+        
     dealerships = get_request(endpoint)
-    return JsonResponse({"status":200,"dealers":dealerships})
+    
+    if not dealerships:
+        return JsonResponse({"status": 500, "message": "Failed to fetch dealerships."}, status=500)
+    
+    return JsonResponse({"status": 200, "dealers": dealerships})
 
 # Create a `get_dealer_reviews` view to render the reviews of a dealer
 def get_dealer_reviews(request, dealer_id):
